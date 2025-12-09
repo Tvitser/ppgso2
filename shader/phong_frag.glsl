@@ -111,10 +111,14 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
         }
     }
 
-    vec3 lightVec = light.position - FragPos;
-    vec3 lightDir = light.type == LIGHT_DIRECTIONAL
-        ? normalize(-light.direction)
-        : normalize(lightVec);
+    vec3 lightVec;
+    vec3 lightDir;
+    if (light.type == LIGHT_DIRECTIONAL) {
+        lightDir = normalize(-light.direction);
+    } else {
+        lightVec = light.position - FragPos;
+        lightDir = normalize(lightVec);
+    }
 
     float attenuation = 1.0;
     if (light.type != LIGHT_DIRECTIONAL) {
