@@ -660,7 +660,6 @@ public:
             glActiveTexture(GL_TEXTURE5 + i);
             glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowMaps[i]);
         }
-        std::cout<<scene.camera->position.x << " " << scene.camera->position.y << " " << scene.camera->position.z <<std::endl;
         scene.render(shadowMaps, scene.numShadowMaps);
 
         // Unbind shadow maps
