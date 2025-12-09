@@ -259,6 +259,8 @@ private:
             if (fs::exists(puzzleMesh)) {
                 auto puzzle = std::make_unique<GenericModel>(nullptr, puzzleMesh.string(), puzzleTexture);
                 puzzle->position = {0.0f, 0.0f, 0.0f};
+                puzzle->useTextureShader();
+                puzzle->disableShadows();
                 puzzle->enableInstancing(5000, 5.0f, static_cast<int>(rng()));
                 scene.rootObjects.push_back(std::move(puzzle));
             } else {

@@ -36,6 +36,12 @@ public:
 
     // Enable hardware instancing for this model
     void enableInstancing(int count, float radius, int seed);
+
+    // Use simple textured shader without lighting/shadows
+    void useTextureShader();
+
+    // Disable casting shadows
+    void disableShadows();
 private:
     std::string meshPath;
     std::string texturePath;
@@ -44,6 +50,7 @@ private:
     static std::unordered_map<std::string, std::shared_ptr<ppgso::Mesh>> meshCache;
     static std::unordered_map<std::string, std::shared_ptr<ppgso::Texture>> texCache;
     static std::unique_ptr<ppgso::Shader> shader;
+    static std::unique_ptr<ppgso::Shader> textureShader;
 
     void ensureResources();
 
@@ -51,4 +58,5 @@ private:
     int instanceCount = 1;
     float instanceRadius = 0.f;
     int instanceSeed = 0;
+    bool useTexture = false;
 };

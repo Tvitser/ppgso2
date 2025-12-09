@@ -1,12 +1,15 @@
 #include "GenericModel.hpp"
 #include <shader/phong_vert_glsl.h>
 #include <shader/phong_frag_glsl.h>
+#include <shader/texture_vert_glsl.h>
+#include <shader/texture_frag_glsl.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <algorithm>
 
 std::unordered_map<std::string, std::shared_ptr<ppgso::Mesh>> GenericModel::meshCache;
 std::unordered_map<std::string, std::shared_ptr<ppgso::Texture>> GenericModel::texCache;
 std::unique_ptr<ppgso::Shader> GenericModel::shader = nullptr;
+std::unique_ptr<ppgso::Shader> GenericModel::textureShader = nullptr;
 
 GenericModel::GenericModel(Object* parent, const std::string &meshFile, const std::string &texFile) {
     parentObject = parent;
@@ -20,6 +23,7 @@ GenericModel::GenericModel(Object* parent, const std::string &meshFile, const st
 
 void GenericModel::ensureResources() {
     if (!shader) shader = std::make_unique<ppgso::Shader>(phong_vert_glsl, phong_frag_glsl);
+    if (!textureShader) textureShader = std::make_unique<ppgso::Shader>(texture_vert_glsl, texture_frag_glsl);
 
     if (meshCache.find(meshPath) == meshCache.end()) {
         meshCache[meshPath] = std::make_shared<ppgso::Mesh>(meshPath);
@@ -37,6 +41,14 @@ void GenericModel::enableInstancing(int count, float radius, int seed) {
     instanceSeed = seed;
 }
 
+void GenericModel::useTextureShader() {
+    useTexture = true;
+}
+
+void GenericModel::disableShadows() {
+    castShadows = false;
+}
+
 bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
     generateModelMatrix(parentModelMatrix);
     return true;
@@ -44,41 +56,53 @@ bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, g
 
 void GenericModel::render(Scene &scene, GLuint depthMap) {
     // Активируем шейдер и устанавливаем общие матрицы/текстуры
-    shader->use();
-    shader->setUniform("projection", scene.camera->projectionMatrix);
-    shader->setUniform("view", scene.camera->viewMatrix);
-    shader->setUniform("model", modelMatrix);
-
-    // Set multiple light space matrices
-    shader->setUniform("numShadowMaps", scene.numShadowMaps);
-    for (int i = 0; i < MAX_SHADOW_MAPS; ++i) {
-        std::string uniformName = "lightSpaceMatrix[" + std::to_string(i) + "]";
-        shader->setUniform(uniformName, scene.lightSpaceMatrices[i]);
+    std::unique_ptr<ppgso::Shader> &activeShader = useTexture ? textureShader : shader;
+    activeShader->use();
+    if (useTexture) {
+        activeShader->setUniform("ProjectionMatrix", scene.camera->projectionMatrix);
+        activeShader->setUniform("ViewMatrix", scene.camera->viewMatrix);
+        activeShader->setUniform("ModelMatrix", modelMatrix);
+    } else {
+        activeShader->setUniform("projection", scene.camera->projectionMatrix);
+        activeShader->setUniform("view", scene.camera->viewMatrix);
+        activeShader->setUniform("model", modelMatrix);
     }
 
-    shader->setUniform("useInstancing", instanced ? 1 : 0);
-    shader->setUniform("instanceRadius", instanced ? instanceRadius : 0.0f);
-    shader->setUniform("instanceSeed", instanceSeed);
+    activeShader->setUniform("useInstancing", instanced ? 1 : 0);
+    activeShader->setUniform("instanceRadius", instanced ? instanceRadius : 0.0f);
+    activeShader->setUniform("instanceSeed", instanceSeed);
 
     if (!texturePath.empty() && texCache.count(texturePath)) {
-        shader->setUniform("Texture", *texCache[texturePath]);
+        activeShader->setUniform("Texture", *texCache[texturePath]);
+    }
+    if (useTexture) {
+        activeShader->setUniform("TextureOffset", glm::vec2{0.0f, 0.0f});
     }
 
-    // Shadow maps are already bound by SceneWindow to texture units 1-4
-    shader->setUniform("shadowMap0", 1);
-    shader->setUniform("shadowMap1", 2);
-    shader->setUniform("shadowMap2", 3);
-    shader->setUniform("shadowMap3", 4);
-    shader->setUniform("pointShadowMaps[0]", 5);
-    shader->setUniform("pointShadowMaps[1]", 6);
+    if (!useTexture) {
+        // Set multiple light space matrices
+        activeShader->setUniform("numShadowMaps", scene.numShadowMaps);
+        for (int i = 0; i < MAX_SHADOW_MAPS; ++i) {
+            std::string uniformName = "lightSpaceMatrix[" + std::to_string(i) + "]";
+            activeShader->setUniform(uniformName, scene.lightSpaceMatrices[i]);
+        }
 
-    // scene.renderLight перезаписывает много uniform'ов (включая Transparency),
-    // поэтому устанавливаем Transparency после него
-    scene.renderLight(shader, true);
+        // Shadow maps are already bound by SceneWindow to texture units 1-4
+        activeShader->setUniform("shadowMap0", 1);
+        activeShader->setUniform("shadowMap1", 2);
+        activeShader->setUniform("shadowMap2", 3);
+        activeShader->setUniform("shadowMap3", 4);
+        activeShader->setUniform("pointShadowMaps[0]", 5);
+        activeShader->setUniform("pointShadowMaps[1]", 6);
 
-    // Устанавливаем прозрачность ПОСЛЕ renderLight
+        // scene.renderLight перезаписывает много uniform'ов (включая Transparency),
+        // поэтому устанавливаем Transparency после него
+        scene.renderLight(activeShader, true);
+    }
+
+    // Устанавливаем прозрачность ПОСЛЕ renderLight / перед рендером
     float transp = transparent ? 0.25f : 1.0f;
-    shader->setUniform("Transparency", transp);
+    activeShader->setUniform("Transparency", transp);
 
     auto meshIt = meshCache.find(meshPath);
     if (meshIt != meshCache.end()) {
@@ -91,6 +115,7 @@ void GenericModel::render(Scene &scene, GLuint depthMap) {
 }
 
 void GenericModel::renderForShadow(Scene &scene) {
+    if (!castShadows) return;
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
 
