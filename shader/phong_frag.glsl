@@ -129,6 +129,9 @@ float getShadowForLight(int lightIndex, vec3 normal, vec3 lightDir, vec3 lightPo
         for (int i = 0; i < numPointShadowMaps && i < MAX_POINT_SHADOW_MAPS; ++i) {
             if (pointShadowCasterIndices[i] == lightIndex) {
                 vec3 fragToLight = FragPos - lightPos;
+                if (length(fragToLight) > pointShadowFarPlane[i]) {
+                    return 0.0;
+                }
                 return samplePointShadowMap(i, fragToLight, pointShadowFarPlane[i]);
             }
         }
@@ -162,6 +165,9 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
         vec3 lightVec = light.position - FragPos;
         float distanceSq = dot(lightVec, lightVec);
         float distanceToLight = sqrt(distanceSq);
+        if (light.maxDist > 0.0 && distanceToLight > light.maxDist) {
+            return vec3(0.0);
+        }
         lightDir = lightVec / distanceToLight;
 
         float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceSq;
