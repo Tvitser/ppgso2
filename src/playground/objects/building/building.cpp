@@ -61,6 +61,8 @@ void Building::render(Scene &scene, GLuint depthMap) {
     shader->setUniform("shadowMap1", 2);
     shader->setUniform("shadowMap2", 3);
     shader->setUniform("shadowMap3", 4);
+    shader->setUniform("pointShadowMaps[0]", 5);
+    shader->setUniform("pointShadowMaps[1]", 6);
 
     // установить параметры света (функция сцены должна выставлять глобальные/спот/прочие uniforms)
     scene.renderLight(shader, true);

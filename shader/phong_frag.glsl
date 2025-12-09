@@ -43,6 +43,7 @@ const int LIGHT_POINT       = 1;
 const int LIGHT_SPOT        = 2;
 const int MAX_LIGHTS        = 10;
 const int MAX_SHADOW_MAPS   = 4;
+const int MAX_POINT_SHADOW_MAPS = 2;
 const float SPOT_EPSILON    = 0.0001;
 const float MIN_ATTENUATION = 0.0001;
 // Minimal facing threshold to allow specular highlights
@@ -51,10 +52,26 @@ const float SHADOW_BIAS_MIN = 0.005;
 const float SHADOW_BIAS_SLOPE = 0.05;
 const int SHADOW_KERNEL_RADIUS = 1;
 const int SHADOW_KERNEL_SAMPLES = (2 * SHADOW_KERNEL_RADIUS + 1) * (2 * SHADOW_KERNEL_RADIUS + 1);
+const int POINT_PCF_SAMPLES = 6;
+const float POINT_SHADOW_DISK_RADIUS = 0.2;
+const float POINT_SHADOW_BIAS = 0.05;
+// Normalized sampling directions: 4 diagonal cube corners, 2 axis-aligned offsets
+const vec3 POINT_PCF_OFFSETS[POINT_PCF_SAMPLES] = vec3[](
+        vec3(0.57735, 0.57735, 0.57735),
+        vec3(-0.57735, 0.57735, -0.57735),
+        vec3(0.57735, -0.57735, -0.57735),
+        vec3(-0.57735, -0.57735, 0.57735),
+        vec3(1, 0, 0),
+        vec3(0, 0, 1)
+);
 
+uniform samplerCube pointShadowMaps[MAX_POINT_SHADOW_MAPS];
 uniform int numberOfLights;
 uniform int numShadowMaps;
 uniform int shadowCasterIndices[4]; // Maps shadow map index to light index
+uniform int numPointShadowMaps;
+uniform int pointShadowCasterIndices[2];
+uniform float pointShadowFarPlane[2];
 uniform Light lights[MAX_LIGHTS];
 
 uniform vec3 viewPos;
@@ -87,9 +104,38 @@ float calculateShadowFromMap(sampler2D sMap, vec4 fragPosLightSpace, vec3 normal
     return shadow;
 }
 
-// Get shadow value for a specific light by checking all shadow maps
-float getShadowForLight(int lightIndex, vec3 normal, vec3 lightDir)
+float samplePointShadowMap(int mapIndex, vec3 fragToLight, float farPlane)
 {
+    if (mapIndex < 0 || mapIndex >= MAX_POINT_SHADOW_MAPS) {
+        return 0.0;
+    }
+    float currentDepth = length(fragToLight);
+    float shadow = 0.0;
+    float bias = POINT_SHADOW_BIAS;
+    for (int i = 0; i < POINT_PCF_SAMPLES; ++i) {
+        float closestDepth = texture(pointShadowMaps[mapIndex],
+                                     fragToLight + POINT_PCF_OFFSETS[i] * POINT_SHADOW_DISK_RADIUS).r;
+        closestDepth *= farPlane;
+        shadow += currentDepth - bias > closestDepth ? 1.0 : 0.0;
+    }
+    shadow /= float(POINT_PCF_SAMPLES);
+    return shadow;
+}
+
+// Get shadow value for a specific light by checking all shadow maps
+float getShadowForLight(int lightIndex, vec3 normal, vec3 lightDir, vec3 lightPos, int lightType)
+{
+    if (lightType == LIGHT_POINT) {
+        for (int i = 0; i < numPointShadowMaps && i < MAX_POINT_SHADOW_MAPS; ++i) {
+            if (pointShadowCasterIndices[i] == lightIndex) {
+                vec3 fragToLight = FragPos - lightPos;
+                if (length(fragToLight) > pointShadowFarPlane[i]) {
+                    return 0.0;
+                }
+                return samplePointShadowMap(i, fragToLight, pointShadowFarPlane[i]);
+            }
+        }
+    }
     for (int i = 0; i < numShadowMaps && i < MAX_SHADOW_MAPS; ++i) {
         if (shadowCasterIndices[i] == lightIndex) {
             // Found shadow map for this light
@@ -119,6 +165,9 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
         vec3 lightVec = light.position - FragPos;
         float distanceSq = dot(lightVec, lightVec);
         float distanceToLight = sqrt(distanceSq);
+        if (light.maxDist > 0.0 && distanceToLight > light.maxDist) {
+            return vec3(0.0);
+        }
         lightDir = lightVec / distanceToLight;
 
         float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceSq;
@@ -149,7 +198,7 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
     }
 
     // Calculate shadow from this light's shadow map (if it has one)
-    float shadow = getShadowForLight(lightIndex, norm, lightDir);
+    float shadow = getShadowForLight(lightIndex, norm, lightDir, light.position, light.type);
 
     vec3 lightColor = light.color;
     return lightColor * (ambient + (1.0 - shadow) * (diffuse + specular)) * attenuation;

@@ -56,6 +56,8 @@ void GenericModel::render(Scene &scene, GLuint depthMap) {
     shader->setUniform("shadowMap1", 2);
     shader->setUniform("shadowMap2", 3);
     shader->setUniform("shadowMap3", 4);
+    shader->setUniform("pointShadowMaps[0]", 5);
+    shader->setUniform("pointShadowMaps[1]", 6);
 
     // scene.renderLight перезаписывает много uniform'ов (включая Transparency),
     // поэтому устанавливаем Transparency после него
