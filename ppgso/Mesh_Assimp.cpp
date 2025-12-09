@@ -139,3 +139,10 @@ void ppgso::Mesh_Assimp::render() {
         glDrawElements(GL_TRIANGLES, buffer.size, GL_UNSIGNED_INT, nullptr);
     }
 }
+
+void ppgso::Mesh_Assimp::renderInstanced(GLsizei instanceCount) {
+    for (auto &buffer : buffers) {
+        glBindVertexArray(buffer.vao);
+        glDrawElementsInstanced(GL_TRIANGLES, buffer.size, GL_UNSIGNED_INT, nullptr, instanceCount);
+    }
+}

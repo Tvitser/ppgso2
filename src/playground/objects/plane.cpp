@@ -38,6 +38,10 @@ void Plane::render(Scene &scene, GLuint depthMap) {
     shader->setUniform("view", scene.camera->viewMatrix);
     shader->setUniform("model", modelMatrix);
 
+    shader->setUniform("useInstancing", 0);
+    shader->setUniform("instanceRadius", 0.0f);
+    shader->setUniform("instanceSeed", 0);
+
     // Set multiple light space matrices
     shader->setUniform("numShadowMaps", scene.numShadowMaps);
     for (int i = 0; i < MAX_SHADOW_MAPS; ++i) {
@@ -64,6 +68,12 @@ void Plane::renderForShadow(Scene &scene) {
     // Use the currently bound shadow shader from SceneWindow (don't call shader_shadow->use())
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
+    GLint locUseInst = glGetUniformLocation(static_cast<GLuint>(currentProgram), "useInstancing");
+    if (locUseInst >= 0) glUniform1i(locUseInst, 0);
+    GLint locRadius = glGetUniformLocation(static_cast<GLuint>(currentProgram), "instanceRadius");
+    if (locRadius >= 0) glUniform1f(locRadius, 0.0f);
+    GLint locSeed = glGetUniformLocation(static_cast<GLuint>(currentProgram), "instanceSeed");
+    if (locSeed >= 0) glUniform1i(locSeed, 0);
     GLint locModel = glGetUniformLocation(static_cast<GLuint>(currentProgram), "ModelMatrix");
     if (locModel >= 0) {
         glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(modelMatrix));

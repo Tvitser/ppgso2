@@ -33,6 +33,9 @@ public:
 
     // Добавлено: реализация чисто-виртуального метода базового класса
     void checkCollisions(Scene &scene, float dt) override;
+
+    // Enable hardware instancing for this model
+    void enableInstancing(int count, float radius, int seed);
 private:
     std::string meshPath;
     std::string texturePath;
@@ -43,4 +46,9 @@ private:
     static std::unique_ptr<ppgso::Shader> shader;
 
     void ensureResources();
+
+    bool instanced = false;
+    int instanceCount = 1;
+    float instanceRadius = 0.f;
+    int instanceSeed = 0;
 };

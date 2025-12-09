@@ -2,6 +2,7 @@
 #include <shader/phong_vert_glsl.h>
 #include <shader/phong_frag_glsl.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <algorithm>
 
 std::unordered_map<std::string, std::shared_ptr<ppgso::Mesh>> GenericModel::meshCache;
 std::unordered_map<std::string, std::shared_ptr<ppgso::Texture>> GenericModel::texCache;
@@ -28,6 +29,14 @@ void GenericModel::ensureResources() {
     }
 }
 
+void GenericModel::enableInstancing(int count, float radius, int seed) {
+    constexpr int MIN_INSTANCE_COUNT = 1;
+    instanced = true;
+    instanceCount = std::max(MIN_INSTANCE_COUNT, count);
+    instanceRadius = radius;
+    instanceSeed = seed;
+}
+
 bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
     generateModelMatrix(parentModelMatrix);
     return true;
@@ -46,6 +55,10 @@ void GenericModel::render(Scene &scene, GLuint depthMap) {
         std::string uniformName = "lightSpaceMatrix[" + std::to_string(i) + "]";
         shader->setUniform(uniformName, scene.lightSpaceMatrices[i]);
     }
+
+    shader->setUniform("useInstancing", instanced ? 1 : 0);
+    shader->setUniform("instanceRadius", instanced ? instanceRadius : 0.0f);
+    shader->setUniform("instanceSeed", instanceSeed);
 
     if (!texturePath.empty() && texCache.count(texturePath)) {
         shader->setUniform("Texture", *texCache[texturePath]);
@@ -67,17 +80,39 @@ void GenericModel::render(Scene &scene, GLuint depthMap) {
     float transp = transparent ? 0.25f : 1.0f;
     shader->setUniform("Transparency", transp);
 
-    if (meshCache.count(meshPath)) meshCache[meshPath]->render();
+    auto meshIt = meshCache.find(meshPath);
+    if (meshIt != meshCache.end()) {
+        if (instanced && instanceCount > 0) {
+            meshIt->second->renderInstanced(instanceCount);
+        } else {
+            meshIt->second->render();
+        }
+    }
 }
 
 void GenericModel::renderForShadow(Scene &scene) {
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
+
+    GLint locUseInst = glGetUniformLocation(static_cast<GLuint>(currentProgram), "useInstancing");
+    if (locUseInst >= 0) glUniform1i(locUseInst, instanced ? 1 : 0);
+    GLint locRadius = glGetUniformLocation(static_cast<GLuint>(currentProgram), "instanceRadius");
+    if (locRadius >= 0) glUniform1f(locRadius, instanced ? instanceRadius : 0.0f);
+    GLint locSeed = glGetUniformLocation(static_cast<GLuint>(currentProgram), "instanceSeed");
+    if (locSeed >= 0) glUniform1i(locSeed, instanceSeed);
+
     GLint locModel = glGetUniformLocation(static_cast<GLuint>(currentProgram), "ModelMatrix");
     if (locModel >= 0) {
         glUniformMatrix4fv(locModel, 1, GL_FALSE, glm::value_ptr(modelMatrix));
     }
-    if (meshCache.count(meshPath)) meshCache[meshPath]->render();
+    auto meshIt = meshCache.find(meshPath);
+    if (meshIt != meshCache.end()) {
+        if (instanced && instanceCount > 0) {
+            meshIt->second->renderInstanced(instanceCount);
+        } else {
+            meshIt->second->render();
+        }
+    }
 }
 
 void GenericModel::renderForShadow(Scene &scene, GLuint) {
