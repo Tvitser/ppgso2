@@ -122,8 +122,8 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
 
     float attenuation = 1.0;
     if (light.type != LIGHT_DIRECTIONAL) {
-        float distanceToLight = length(lightVec);
-        float distanceSq = distanceToLight * distanceToLight;
+        float distanceSq = dot(lightVec, lightVec);
+        float distanceToLight = sqrt(distanceSq);
         float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceSq;
         attenuation = 1.0 / max(denom, MIN_ATTENUATION);
     }
