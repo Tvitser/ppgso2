@@ -543,6 +543,13 @@ public:
         // pointLightA = index 1, spotLight = index 2, pointLightB = index 3
         int lightIndex = 1;
         for (Light* light : {&pointLightA, &spotLight, &pointLightB}) {
+            if (scene.camera && light->maxDist > 0.0f) {
+                float camDistance = glm::length(scene.camera->position - light->position);
+                if (camDistance > light->maxDist + 1.0f) {
+                    lightIndex++;
+                    continue;
+                }
+            }
             if (light->type == LightType::Point) {
                 if (pointShadowCasters.size() < static_cast<size_t>(NUM_POINT_SHADOW_MAPS)) {
                     pointShadowCasters.push_back({light, lightIndex});
