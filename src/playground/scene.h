@@ -12,6 +12,7 @@
 #include "mainlight.h"
 
 constexpr int MAX_SHADOW_MAPS = 4;
+constexpr int MAX_POINT_SHADOW_MAPS = 2;
 
 class Scene {
 public:
@@ -36,6 +37,9 @@ public:
  int numShadowMaps = 0;
  glm::mat4 lightSpaceMatrices[MAX_SHADOW_MAPS];
  int shadowCasterIndices[MAX_SHADOW_MAPS]; // Maps shadow map index to light index
+ int numPointShadowMaps = 0;
+ int pointShadowCasterIndices[MAX_POINT_SHADOW_MAPS];
+ float pointShadowFarPlane[MAX_POINT_SHADOW_MAPS];
 
  // Legacy single light (for backward compatibility)
  glm::mat4 lightProjectionMatrix{1.f};

@@ -3,12 +3,12 @@
 #include <algorithm>
 
 constexpr int MAX_LIGHTS = 10;
-constexpr glm::vec3 LIGHT_AMBIENT_INTENSITY{0.1f};
+constexpr glm::vec3 LIGHT_AMBIENT_INTENSITY{0.3f};
 constexpr glm::vec3 LIGHT_DIFFUSE_INTENSITY{0.6f};
 constexpr glm::vec3 LIGHT_SPECULAR_INTENSITY{0.3f};
-constexpr glm::vec3 DEFAULT_MATERIAL_AMBIENT{0.2f};
+constexpr glm::vec3 DEFAULT_MATERIAL_AMBIENT{0.7f};
 constexpr glm::vec3 DEFAULT_MATERIAL_DIFFUSE{0.8f};
-constexpr glm::vec3 DEFAULT_MATERIAL_SPECULAR{0.5f};
+constexpr glm::vec3 DEFAULT_MATERIAL_SPECULAR{0.2f};
 
 // Вспомогательная рекурсивная функция:
 // собирает ВСЕ объекты сцены (включая детей) в два списка – opaque и transparent.
@@ -116,9 +116,16 @@ void Scene::renderLight(std::unique_ptr<ppgso::Shader> &shader, bool) {
     
     // Set number of shadow maps and shadow caster indices
     shader->setUniform("numShadowMaps", numShadowMaps);
+    shader->setUniform("numPointShadowMaps", numPointShadowMaps);
     for (int i = 0; i < MAX_SHADOW_MAPS; ++i) {
         std::string uniformName = "shadowCasterIndices[" + std::to_string(i) + "]";
         shader->setUniform(uniformName, i < numShadowMaps ? shadowCasterIndices[i] : -1);
+    }
+    for (int i = 0; i < MAX_POINT_SHADOW_MAPS; ++i) {
+        std::string uniformName = "pointShadowCasterIndices[" + std::to_string(i) + "]";
+        shader->setUniform(uniformName, i < numPointShadowMaps ? pointShadowCasterIndices[i] : -1);
+        uniformName = "pointShadowFarPlane[" + std::to_string(i) + "]";
+        shader->setUniform(uniformName, i < numPointShadowMaps ? pointShadowFarPlane[i] : 0.0f);
     }
 
     // Set light space matrices for all shadow-casting lights
