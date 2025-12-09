@@ -58,7 +58,7 @@ private:
 
     // Light objects
     Light pointLightA;
-    Light directionalLight;
+    Light spotLight;
     Light pointLightB;
 
     // RNG
@@ -80,11 +80,11 @@ private:
         return proj * view;
     }
 
-    // Helper function to compute light space matrix for a directional light
+    // Helper function to compute light space matrix for a spot light
     glm::mat4 computeDirectionalLightSpaceMatrix(const Light& light) {
         float orthoSize = 150.0f;
         glm::mat4 proj = glm::ortho(-orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 500.0f);
-        // For directional light, position it far along -direction
+        // For spot light, position it far along -direction
         glm::vec3 lightDir = light.effectiveDirection();
         if (glm::length(lightDir) < 0.001f) lightDir = glm::vec3(0.0f, -1.0f, 0.0f);
         glm::vec3 lightPos = -lightDir * 200.0f;
@@ -135,13 +135,13 @@ private:
         scene.mainlight = std::make_unique<MainLight>(
             glm::vec3(1.0f, 1.0f, 1.0f), // color
             lightDir,                   // direction (normalized)
-            0.0f, 0.0f,                 // cutOff, outerCutOff (неважно для directional)
+            0.0f, 0.0f,                 // cutOff, outerCutOff (неважно для spot)
             1.0f, 1.0f, 0.0f, 700.0f    // attenuation params + maxDist
         );
 
         scene.mainlight->position = lightPos;
         scene.mainlight->localDirection = glm::normalize(glm::vec3(-1, -1, -1)); // << НОВОЕ!
-        // Явно задать орто-проекцию для directional света (покрыть сцену)
+        // Явно задать орто-проекцию для spot света (покрыть сцену)
         float orthoSize = 500.0f;
         scene.mainlight->lightProjectionMatrix = glm::ortho(
             -orthoSize, orthoSize, -orthoSize, orthoSize, 1.0f, 600.0f
@@ -157,13 +157,15 @@ private:
         pointLightA.position = glm::vec3(-0.425795f, 1.63406f, 1.51299f);
         scene.lights.push_back(&pointLightA);
 
-        // Direction vector derived from the requested directional light coordinates.
-        directionalLight = Light(glm::vec3(1.f,0.f,1.f), glm::vec3(3.97044f, 0.625977f, -0.83307f),
-                                 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.5f);
-        directionalLight.position = glm::vec3(4.05782f, 1.18994f, -0.959035f);
-        scene.lights.push_back(&directionalLight);
+        // Direction vector derived from the requested spot light coordinates.
+        spotLight.position = glm::vec3(-4.85891, 1.27937, 2.68917);
+        spotLight = Light(glm::vec3(1.f,0.f,1.f), glm::normalize(glm::vec3(-4.85891, 0.27937, 2.68917)-spotLight.position),
+                                 20.f, 25.f, 1.0f, 0.79f, 0.032f, 0.2f);
+        spotLight.position = glm::vec3(-4.85891, 1.27937, 2.68917);
+        spotLight.type=LightType::Spot;
+        scene.lights.push_back(&spotLight);
 
-        pointLightB = Light(glm::vec3(1.0f), 1.0f, 0.09f, 0.032f, 50.0f);
+        pointLightB = Light(glm::vec3(0.0,1.f,0.f), 1.0f, 0.09f, 0.032f, 4.0f);
         pointLightB.position = glm::vec3(13.7437f, 0.772186f, 1.56947f);
         scene.lights.push_back(&pointLightB);
 
@@ -492,9 +494,9 @@ public:
         }
 
         // Add remaining lights (indices 1, 2, 3 in scene.lights)
-        // pointLightA = index 1, directionalLight = index 2, pointLightB = index 3
+        // pointLightA = index 1, spotLight = index 2, pointLightB = index 3
         int lightIndex = 1;
-        for (Light* light : {&pointLightA, &directionalLight, &pointLightB}) {
+        for (Light* light : {&pointLightA, &spotLight, &pointLightB}) {
             if (shadowCasters.size() >= static_cast<size_t>(NUM_SHADOW_MAPS)) break;
             shadowCasters.push_back({light, lightIndex});
             lightIndex++;
