@@ -105,20 +105,22 @@ float getShadowForLight(int lightIndex, vec3 normal, vec3 lightDir)
 vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, in vec3 texColor)
 {
     if (light.type == LIGHT_DIRECTIONAL && light.maxDist > 0.0) {
-        float distanceFromOrigin = length(FragPos);
-        if (distanceFromOrigin > light.maxDist) {
+        float distanceFromCamera = length(viewPos - FragPos);
+        if (distanceFromCamera > light.maxDist) {
             return vec3(0.0);
         }
     }
 
+    vec3 lightVec = light.position - FragPos;
     vec3 lightDir = light.type == LIGHT_DIRECTIONAL
         ? normalize(-light.direction)
-        : normalize(light.position - FragPos);
+        : normalize(lightVec);
 
     float attenuation = 1.0;
     if (light.type != LIGHT_DIRECTIONAL) {
-        float distanceToLight = length(light.position - FragPos);
-        float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceToLight * distanceToLight;
+        float distanceToLight = length(lightVec);
+        float distanceSq = dot(lightVec, lightVec);
+        float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceSq;
         attenuation = 1.0 / max(denom, MIN_ATTENUATION);
     }
 
