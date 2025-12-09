@@ -185,7 +185,7 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
     spec *= step(SPECULAR_EPSILON, facing);
     vec3 specular = light.specular * spec * material.specular;
 
-    vec3 ambient = light.ambient * material.ambient * texColor;
+    vec3 ambient = light.color * light.ambient * material.ambient * texColor;
 
     if (light.type == LIGHT_SPOT) {
         vec3 spotDir = normalize(light.direction);
@@ -200,8 +200,8 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
     // Calculate shadow from this light's shadow map (if it has one)
     float shadow = getShadowForLight(lightIndex, norm, lightDir, light.position, light.type);
 
-    vec3 lightColor = light.color;
-    return lightColor * (ambient + (1.0 - shadow) * (diffuse + specular)) * attenuation;
+    vec3 shadowedLighting = (1.0 - shadow) * (diffuse + specular) * attenuation;
+    return ambient + light.color * shadowedLighting;
 }
 
 // ============ MAIN ============
