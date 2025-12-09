@@ -104,9 +104,11 @@ float getShadowForLight(int lightIndex, vec3 normal, vec3 lightDir)
 
 vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, in vec3 texColor)
 {
-    float distanceToLight = length(light.position - FragPos);
-    if (light.type == LIGHT_DIRECTIONAL && light.maxDist > 0.0 && distanceToLight > light.maxDist) {
-        return vec3(0.0);
+    if (light.type == LIGHT_DIRECTIONAL && light.maxDist > 0.0) {
+        float distanceFromOrigin = length(FragPos);
+        if (distanceFromOrigin > light.maxDist) {
+            return vec3(0.0);
+        }
     }
 
     vec3 lightDir = light.type == LIGHT_DIRECTIONAL
@@ -115,6 +117,7 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
 
     float attenuation = 1.0;
     if (light.type != LIGHT_DIRECTIONAL) {
+        float distanceToLight = length(light.position - FragPos);
         float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceToLight * distanceToLight;
         attenuation = 1.0 / max(denom, MIN_ATTENUATION);
     }
