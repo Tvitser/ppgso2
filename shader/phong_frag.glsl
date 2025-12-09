@@ -111,20 +111,16 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
         }
     }
 
-    vec3 lightVec;
     vec3 lightDir;
+    float attenuation = 1.0;
     if (light.type == LIGHT_DIRECTIONAL) {
         lightDir = normalize(-light.direction);
     } else {
-        lightVec = light.position - FragPos;
+        vec3 lightVec = light.position - FragPos;
         lightDir = normalize(lightVec);
-    }
 
-    float attenuation = 1.0;
-    if (light.type != LIGHT_DIRECTIONAL) {
-        float distanceSq = dot(lightVec, lightVec);
-        float distanceToLight = sqrt(distanceSq);
-        float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceSq;
+        float distanceToLight = length(lightVec);
+        float denom = light.constant + light.linear * distanceToLight + light.quadratic * (distanceToLight * distanceToLight);
         attenuation = 1.0 / max(denom, MIN_ATTENUATION);
     }
 
