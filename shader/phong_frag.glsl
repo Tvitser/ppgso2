@@ -117,9 +117,9 @@ vec3 applyLight(int lightIndex, in Light light, in vec3 norm, in vec3 viewDir, i
         lightDir = normalize(-light.direction);
     } else {
         vec3 lightVec = light.position - FragPos;
-        float distanceToLight = length(lightVec);
-        float distanceSq = distanceToLight * distanceToLight;
-        lightDir = distanceToLight > 0.0 ? lightVec / distanceToLight : vec3(0.0);
+        float distanceSq = dot(lightVec, lightVec);
+        float distanceToLight = sqrt(distanceSq);
+        lightDir = distanceSq > 0.0 ? lightVec / distanceToLight : vec3(0.0);
 
         float denom = light.constant + light.linear * distanceToLight + light.quadratic * distanceSq;
         attenuation = 1.0 / max(denom, MIN_ATTENUATION);
