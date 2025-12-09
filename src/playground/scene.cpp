@@ -144,6 +144,7 @@ void Scene::renderLight(std::unique_ptr<ppgso::Shader> &shader, bool) {
         shader->setUniform(idx + ".constant", L->constant);
         shader->setUniform(idx + ".linear", L->linear);
         shader->setUniform(idx + ".quadratic", L->quadratic);
+        shader->setUniform(idx + ".maxDist", L->maxDist);
     }
 
     // камера и общие параметры
