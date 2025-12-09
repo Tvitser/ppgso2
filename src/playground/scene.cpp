@@ -116,9 +116,16 @@ void Scene::renderLight(std::unique_ptr<ppgso::Shader> &shader, bool) {
     
     // Set number of shadow maps and shadow caster indices
     shader->setUniform("numShadowMaps", numShadowMaps);
+    shader->setUniform("numPointShadowMaps", numPointShadowMaps);
     for (int i = 0; i < MAX_SHADOW_MAPS; ++i) {
         std::string uniformName = "shadowCasterIndices[" + std::to_string(i) + "]";
         shader->setUniform(uniformName, i < numShadowMaps ? shadowCasterIndices[i] : -1);
+    }
+    for (int i = 0; i < MAX_POINT_SHADOW_MAPS; ++i) {
+        std::string uniformName = "pointShadowCasterIndices[" + std::to_string(i) + "]";
+        shader->setUniform(uniformName, i < numPointShadowMaps ? pointShadowCasterIndices[i] : -1);
+        uniformName = "pointShadowFarPlane[" + std::to_string(i) + "]";
+        shader->setUniform(uniformName, i < numPointShadowMaps ? pointShadowFarPlane[i] : 0.0f);
     }
 
     // Set light space matrices for all shadow-casting lights

@@ -7,6 +7,7 @@
 #include <random>
 #include <algorithm>
 #include <vector>
+#include <array>
 #include <ppgso/shader.h>
 #include <ppgso/ppgso.h>
 #include <filesystem>
@@ -46,6 +47,10 @@ private:
     GLuint shadowMapFBOs[NUM_SHADOW_MAPS] = {0};
     GLuint shadowMaps[NUM_SHADOW_MAPS] = {0};
     const int SHADOW_SIZE = 2048;
+    static const int NUM_POINT_SHADOW_MAPS = MAX_POINT_SHADOW_MAPS;
+    GLuint pointShadowMapFBOs[NUM_POINT_SHADOW_MAPS] = {0};
+    GLuint pointShadowMaps[NUM_POINT_SHADOW_MAPS] = {0};
+    const int POINT_SHADOW_SIZE = SHADOW_SIZE;
     // Общий шейдер для рендера теней (depth)
     std::unique_ptr<ppgso::Shader> shadowShader;
 
@@ -92,6 +97,19 @@ private:
         return proj * view;
     }
 
+    std::array<glm::mat4, 6> buildPointShadowTransforms(const glm::vec3& lightPos, float nearPlane, float farPlane) {
+        glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), 1.0f, nearPlane, farPlane);
+        // Cube faces: +X, -X, +Y, -Y, +Z, -Z
+        return {
+                shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)),
+                shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)),
+                shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)),
+                shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)),
+                shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)),
+                shadowProj * glm::lookAt(lightPos, lightPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0))
+        };
+    }
+
     void createShadowResources() {
         // Create multiple shadow map framebuffers and textures
         glGenFramebuffers(NUM_SHADOW_MAPS, shadowMapFBOs);
@@ -119,6 +137,32 @@ private:
 
         glBindTexture(GL_TEXTURE_2D, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void createPointShadowResources() {
+        glGenFramebuffers(NUM_POINT_SHADOW_MAPS, pointShadowMapFBOs);
+        glGenTextures(NUM_POINT_SHADOW_MAPS, pointShadowMaps);
+
+        for (int i = 0; i < NUM_POINT_SHADOW_MAPS; ++i) {
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowMaps[i]);
+            for (int face = 0; face < 6; ++face) {
+                glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, 0, GL_DEPTH_COMPONENT,
+                             POINT_SHADOW_SIZE, POINT_SHADOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+            }
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+            glBindFramebuffer(GL_FRAMEBUFFER, pointShadowMapFBOs[i]);
+            glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, pointShadowMaps[i], 0);
+            glDrawBuffer(GL_NONE);
+            glReadBuffer(GL_NONE);
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
 
     // === Add table with random chairs and glasses ===
@@ -425,6 +469,7 @@ public:
         glCullFace(GL_BACK);
 
         createShadowResources();
+        createPointShadowResources();
         // Компилируем общий shadow-шейдер один раз
         shadowShader = std::make_unique<ppgso::Shader>(shadow_vert_glsl, shadow_frag_glsl);
 
@@ -484,11 +529,12 @@ public:
 
         // Build list of shadow-casting lights and compute their light space matrices
         // Light indices must match the order in scene.lights
-        std::vector<std::pair<Light*, int>> shadowCasters; // pair<light, lightIndex>
+        std::vector<std::pair<Light*, int>> shadowCasters2D; // pair<light, lightIndex>
+        std::vector<std::pair<Light*, int>> pointShadowCasters;
 
         // Check mainlight first (index 0 in scene.lights)
         if (scene.mainlight) {
-            shadowCasters.push_back({scene.mainlight.get(), 0});
+            shadowCasters2D.push_back({scene.mainlight.get(), 0});
             scene.lightViewMatrix       = scene.mainlight->getLightView();
             scene.lightProjectionMatrix = scene.mainlight->lightProjectionMatrix;
         }
@@ -497,23 +543,29 @@ public:
         // pointLightA = index 1, spotLight = index 2, pointLightB = index 3
         int lightIndex = 1;
         for (Light* light : {&pointLightA, &spotLight, &pointLightB}) {
-            if (shadowCasters.size() >= static_cast<size_t>(NUM_SHADOW_MAPS)) break;
-            shadowCasters.push_back({light, lightIndex});
+            if (light->type == LightType::Point) {
+                if (pointShadowCasters.size() < static_cast<size_t>(NUM_POINT_SHADOW_MAPS)) {
+                    pointShadowCasters.push_back({light, lightIndex});
+                }
+            } else {
+                if (shadowCasters2D.size() < static_cast<size_t>(NUM_SHADOW_MAPS)) {
+                    shadowCasters2D.push_back({light, lightIndex});
+                }
+            }
             lightIndex++;
         }
 
         // Update scene with shadow caster info
-        scene.numShadowMaps = static_cast<int>(shadowCasters.size());
+        scene.numShadowMaps = static_cast<int>(shadowCasters2D.size());
+        scene.numPointShadowMaps = static_cast<int>(pointShadowCasters.size());
         for (int i = 0; i < NUM_SHADOW_MAPS; ++i) {
-            if (i < static_cast<int>(shadowCasters.size())) {
-                Light* light = shadowCasters[i].first;
-                scene.shadowCasterIndices[i] = shadowCasters[i].second;
+            if (i < static_cast<int>(shadowCasters2D.size())) {
+                Light* light = shadowCasters2D[i].first;
+                scene.shadowCasterIndices[i] = shadowCasters2D[i].second;
 
                 // Compute light space matrix based on light type
                 if (light->type == LightType::Directional) {
                     scene.lightSpaceMatrices[i] = computeDirectionalLightSpaceMatrix(*light);
-                } else if (light->type == LightType::Point) {
-                    scene.lightSpaceMatrices[i] = computePointLightSpaceMatrix(*light);
                 } else {
                     // Spotlight - use perspective projection
                     float near = 0.1f;
@@ -526,6 +578,16 @@ public:
             } else {
                 scene.shadowCasterIndices[i] = -1;
                 scene.lightSpaceMatrices[i] = glm::mat4(1.0f);
+            }
+        }
+        for (int i = 0; i < NUM_POINT_SHADOW_MAPS; ++i) {
+            if (i < static_cast<int>(pointShadowCasters.size())) {
+                Light* light = pointShadowCasters[i].first;
+                scene.pointShadowCasterIndices[i] = pointShadowCasters[i].second;
+                scene.pointShadowFarPlane[i] = light->maxDist > 0 ? light->maxDist : 100.0f;
+            } else {
+                scene.pointShadowCasterIndices[i] = -1;
+                scene.pointShadowFarPlane[i] = 0.0f;
             }
         }
 
@@ -542,7 +604,33 @@ public:
             if (shadowShader) {
                 shadowShader->use();
                 shadowShader->setUniform("lightSpaceMatrix", scene.lightSpaceMatrices[i]);
+                shadowShader->setUniform("isPointLight", false);
                 scene.renderForShadow(0);
+            }
+        }
+
+        // PASS 1b: Point light shadow cubemaps
+        glViewport(0, 0, POINT_SHADOW_SIZE, POINT_SHADOW_SIZE);
+        for (int i = 0; i < scene.numPointShadowMaps && i < NUM_POINT_SHADOW_MAPS; ++i) {
+            Light* light = pointShadowCasters[i].first;
+            float farPlane = scene.pointShadowFarPlane[i];
+            float nearPlane = 0.1f;
+            auto shadowTransforms = buildPointShadowTransforms(light->position, nearPlane, farPlane);
+
+            for (int face = 0; face < 6; ++face) {
+                glBindFramebuffer(GL_FRAMEBUFFER, pointShadowMapFBOs[i]);
+                glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+                                       GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, pointShadowMaps[i], 0);
+                glClear(GL_DEPTH_BUFFER_BIT);
+
+                if (shadowShader) {
+                    shadowShader->use();
+                    shadowShader->setUniform("lightSpaceMatrix", shadowTransforms[face]);
+                    shadowShader->setUniform("lightPos", light->position);
+                    shadowShader->setUniform("far_plane", farPlane);
+                    shadowShader->setUniform("isPointLight", true);
+                    scene.renderForShadow(0);
+                }
             }
         }
 
@@ -567,6 +655,10 @@ public:
             glActiveTexture(GL_TEXTURE1 + i);
             glBindTexture(GL_TEXTURE_2D, shadowMaps[i]);
         }
+        for (int i = 0; i < NUM_POINT_SHADOW_MAPS; ++i) {
+            glActiveTexture(GL_TEXTURE5 + i);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, pointShadowMaps[i]);
+        }
         std::cout<<scene.camera->position.x << " " << scene.camera->position.y << " " << scene.camera->position.z <<std::endl;
         scene.render(shadowMaps, scene.numShadowMaps);
 
@@ -574,6 +666,10 @@ public:
         for (int i = 0; i < NUM_SHADOW_MAPS; ++i) {
             glActiveTexture(GL_TEXTURE1 + i);
             glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        for (int i = 0; i < NUM_POINT_SHADOW_MAPS; ++i) {
+            glActiveTexture(GL_TEXTURE5 + i);
+            glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
         }
         glActiveTexture(GL_TEXTURE0);
     }

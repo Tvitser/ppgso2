@@ -12,6 +12,7 @@
 #include "mainlight.h"
 
 constexpr int MAX_SHADOW_MAPS = 4;
+constexpr int MAX_POINT_SHADOW_MAPS = 2;
 
 class Scene {
 public:
@@ -32,14 +33,17 @@ public:
  float lastFPSOutputTime = 0.f;
  short scene_id = 0;
 
- // Support for multiple shadow-casting lights
- int numShadowMaps = 0;
- glm::mat4 lightSpaceMatrices[MAX_SHADOW_MAPS];
- int shadowCasterIndices[MAX_SHADOW_MAPS]; // Maps shadow map index to light index
+  // Support for multiple shadow-casting lights
+  int numShadowMaps = 0;
+  glm::mat4 lightSpaceMatrices[MAX_SHADOW_MAPS];
+  int shadowCasterIndices[MAX_SHADOW_MAPS]; // Maps shadow map index to light index
+  int numPointShadowMaps = 0;
+  int pointShadowCasterIndices[MAX_POINT_SHADOW_MAPS];
+  float pointShadowFarPlane[MAX_POINT_SHADOW_MAPS];
 
- // Legacy single light (for backward compatibility)
- glm::mat4 lightProjectionMatrix{1.f};
- glm::mat4 lightViewMatrix{1.f};
+  // Legacy single light (for backward compatibility)
+  glm::mat4 lightProjectionMatrix{1.f};
+  glm::mat4 lightViewMatrix{1.f};
 };
 
 #endif // _PPGSO_SCENE_H
