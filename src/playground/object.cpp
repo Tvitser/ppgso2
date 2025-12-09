@@ -41,7 +41,8 @@ void Object::renderChildren(Scene &scene, GLuint depthMap) {
  * @param scene
  */
 void Object::renderForShadowChildren(Scene &scene) {
-    this->renderForShadow(scene);
+    if (castShadows)
+        this->renderForShadow(scene);
     for ( auto& obj : childObjects )
         obj->renderForShadowChildren(scene);
 }

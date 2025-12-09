@@ -240,6 +240,34 @@ private:
             scene.rootObjects.push_back(std::move(ground));
         }
 
+        // === Instanced puzzle objects ===
+        {
+            fs::path puzzleMesh = "special_objects/puzzle.obj";
+            if (!fs::exists(puzzleMesh)) {
+                // Fall back to the originally provided folder name if that exists
+                fs::path fallbackMesh = "special_opjects/puzzle.obj";
+                if (fs::exists(fallbackMesh)) {
+                    puzzleMesh = fallbackMesh;
+                }
+            }
+            std::string puzzleTexture;
+            fs::path puzzleTexPath = puzzleMesh.parent_path() / "puzzle.bmp";
+            if (fs::exists(puzzleTexPath)) {
+                puzzleTexture = puzzleTexPath.string();
+            }
+
+            if (fs::exists(puzzleMesh)) {
+                auto puzzle = std::make_unique<GenericModel>(nullptr, puzzleMesh.string(), puzzleTexture);
+                puzzle->position = {0.0f, 0.0f, 0.0f};
+                puzzle->useTextureShader();
+                puzzle->disableShadows();
+                puzzle->enableInstancing(5000, 5.0f, static_cast<int>(rng()));
+                scene.rootObjects.push_back(std::move(puzzle));
+            } else {
+                std::cerr << "Puzzle mesh not found at " << puzzleMesh << std::endl;
+            }
+        }
+
         // === Scene objects ===
 
 

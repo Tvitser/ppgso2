@@ -59,6 +59,11 @@ namespace ppgso {
          * Render the geometry associated with the mesh using glDrawElements.
          */
         void render();
+
+        /*!
+         * Render the geometry using hardware instancing.
+         * @param instanceCount Number of instances to draw.
+         */
+        void renderInstanced(GLsizei instanceCount);
     };
 }
-

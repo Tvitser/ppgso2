@@ -86,6 +86,7 @@ public:
   glm::vec3 rotation{0,0,0};
   glm::vec3 scale{1,1,1};
   glm::mat4 modelMatrix{1};
+  bool castShadows = true;
 
   // Speed and rotational momentum
   glm::vec3 speed{0, 0, 0};
