@@ -92,6 +92,31 @@ bool Puzzle::checkCollisionWithObject(Object* other) const {
 }
 
 void Puzzle::checkCollisions(Scene &scene, float dt) {
+    // Empty - collision detection is done in update() after position change
+}
+
+bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
+    // Initialize velocity from speed on first update
+    if (firstUpdate) {
+        velocity = speed;
+        firstUpdate = false;
+    }
+    
+    // Apply gravity
+    if (!isGrounded) {
+        velocity.y += gravity * dt;
+    }
+
+    // Update position based on velocity
+    position += velocity * dt;
+
+    // Update rotation based on angular velocity
+    rotation += angularVelocity * dt;
+
+    // Generate model matrix with new position
+    generateModelMatrix(parentModelMatrix);
+
+    // Now check collisions with the new position and model matrix
     isGrounded = false;
 
     glm::vec3 myMin = getMin();
@@ -118,6 +143,9 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
             velocity.z *= 0.95f;
             angularVelocity *= 0.95f;
         }
+        
+        // Regenerate model matrix after position correction
+        generateModelMatrix(parentModelMatrix);
     }
 
     // Check collisions with other objects in the scene
@@ -152,31 +180,11 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
             float penetrationDepth = otherMax.y - myMin.y;
             if (penetrationDepth > 0 && penetrationDepth < 1.0f) {
                 position.y += penetrationDepth;
+                // Regenerate model matrix after position correction
+                generateModelMatrix(parentModelMatrix);
             }
         }
     }
-}
-
-bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
-    // Initialize velocity from speed on first update
-    if (firstUpdate) {
-        velocity = speed;
-        firstUpdate = false;
-    }
-    
-    // Apply gravity
-    if (!isGrounded) {
-        velocity.y += gravity * dt;
-    }
-
-    // Update position based on velocity
-    position += velocity * dt;
-
-    // Update rotation based on angular velocity
-    rotation += angularVelocity * dt;
-
-    // Generate model matrix
-    generateModelMatrix(parentModelMatrix);
 
     return true;
 }
