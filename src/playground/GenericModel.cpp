@@ -29,6 +29,10 @@ void GenericModel::ensureResources() {
 }
 
 bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
+    if (!keyframes.empty() && !keyframesOver) {
+        age += dt;
+        keyframesUpdate(scene);
+    }
     generateModelMatrix(parentModelMatrix);
     return true;
 }

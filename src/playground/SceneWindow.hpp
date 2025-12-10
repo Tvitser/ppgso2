@@ -18,6 +18,7 @@
 #include "camera.h"
 #include "scene.h"
 #include "light.h"
+#include "keyframe.h"
 
 // === Базовые объекты ===
 #include "objects/plane.h"
@@ -392,6 +393,31 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             auto balcony = std::make_unique<Balcony>(nullptr);
             balcony->position = {1, 1, 1};
             scene.rootObjects.push_back(std::move(balcony));
+        }
+
+        {
+            auto animatedPot = std::make_unique<GenericModel>(nullptr, "objects/pot.obj", "textures/pot.bmp");
+            const float startDelay = 0.1f;
+            const float segmentDuration = 3.f;
+            const float offset = 5.f;
+            const float animationHeight = 0.0f;
+            const glm::vec3 defaultRotation{0.f, 0.f, 0.f};
+            const bool easeIn = true;
+            const bool easeOut = true;
+            animatedPot->scale = {0.6f, 0.6f, 0.6f};
+            animatedPot->position.y = animationHeight;
+            std::vector<glm::vec3> path = {
+                {-offset, animationHeight, -offset},
+                {-offset, animationHeight, offset},
+                {offset, animationHeight, offset},
+                {offset, animationHeight, -offset},
+                {-offset, animationHeight, -offset}
+            };
+            animatedPot->keyframes.push_back(Keyframe(startDelay, path.front()));
+            for (size_t i = 1; i < path.size(); ++i) {
+                animatedPot->keyframes.push_back(Keyframe(segmentDuration, path[i], defaultRotation, easeIn, easeOut));
+            }
+            scene.rootObjects.push_back(std::move(animatedPot));
         }
     }
 
