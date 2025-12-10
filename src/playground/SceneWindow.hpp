@@ -21,6 +21,7 @@
 
 // === Базовые объекты ===
 #include "objects/plane.h"
+#include "objects/puzzle.h"
 
 #include "objects/building/balcony.h"
 #include "objects/building/building.h"
@@ -680,7 +681,14 @@ public:
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
-
+        // Spawn puzzle at camera position when 'P' key is pressed
+        if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+            if (scene.camera) {
+                auto puzzle = std::make_unique<Puzzle>(nullptr);
+                puzzle->position = scene.camera->position;
+                scene.rootObjects.push_back(std::move(puzzle));
+            }
+        }
     }
 
 };
