@@ -18,14 +18,14 @@ Puzzle::Puzzle(Object* parent, const glm::vec3& initialPosition, const glm::vec3
     weight = mass;
 
     if (!mesh) {
-        // Use sphere for puzzle piece
-        mesh = std::make_unique<ppgso::Mesh>("objects/sphere.obj");
+        // Use cube for puzzle piece
+        mesh = std::make_unique<ppgso::Mesh>("objects/puzzle_cube.obj");
     }
     if (!shader) {
         shader = std::make_unique<ppgso::Shader>(phong_vert_glsl, phong_frag_glsl);
     }
     if (!texture) {
-        texture = std::make_unique<ppgso::Texture>(ppgso::image::loadBMP("textures/ground.bmp"));
+        texture = std::make_unique<ppgso::Texture>(ppgso::image::loadBMP("textures/brick.bmp"));
     }
 }
 
