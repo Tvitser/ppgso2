@@ -3,6 +3,7 @@
 #include <shader/phong_vert_glsl.h>
 #include <shader/phong_frag_glsl.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <cfloat>
 
 std::unique_ptr<ppgso::Mesh> Puzzle::mesh;
 std::unique_ptr<ppgso::Shader> Puzzle::shader;
@@ -157,6 +158,12 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
 }
 
 bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
+    // Initialize velocity from speed on first update
+    if (firstUpdate) {
+        velocity = speed;
+        firstUpdate = false;
+    }
+    
     // Apply gravity
     if (!isGrounded) {
         velocity.y += gravity * dt;

@@ -19,6 +19,7 @@ private:
     const float mass = 1.0f;
     const float restitution = 0.3f; // Bounciness coefficient
     bool isGrounded = false;
+    bool firstUpdate = true;
 
     // Collision bounds based on model matrix
     glm::vec3 getMin() const;
