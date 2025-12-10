@@ -63,6 +63,8 @@ bool Puzzle::checkCollisionWithObject(Object* other) const {
     glm::vec3 myMax = getMax();
 
     // For other objects, calculate bounds from their model matrix
+    // Note: This assumes a cube-based bounding box for all objects, which is a simplification
+    // The model matrix transformation ensures proper scaling and rotation are accounted for
     glm::vec3 otherMin(FLT_MAX);
     glm::vec3 otherMax(-FLT_MAX);
     for (const auto& corner : CUBE_CORNERS) {
@@ -78,11 +80,15 @@ bool Puzzle::checkCollisionWithObject(Object* other) const {
 }
 
 void Puzzle::checkCollisions(Scene &scene, float dt) {
-    // Empty - collision detection is done in update() after position change
+    // Intentionally empty - collision detection is integrated into the update() method
+    // This is done after position update to ensure collisions are checked at the new position
+    // with the updated model matrix, allowing for accurate collision response
 }
 
 bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
     // Initialize velocity from speed on first update
+    // This is necessary because speed is set externally after construction
+    // (see SceneWindow onKey where puzzle->speed is set before adding to scene)
     if (firstUpdate) {
         velocity = speed;
         firstUpdate = false;
@@ -108,8 +114,8 @@ bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::ve
     glm::vec3 myMin = getMin();
     glm::vec3 myMax = getMax();
 
-    // Check collision with ground (y = -1.0f based on plane position in scene)
-    float groundLevel = -1.0f;
+    // Check collision with ground (matches the plane position in SceneWindow initScene)
+    const float groundLevel = -1.0f;
     if (myMin.y <= groundLevel) {
         // Collision with ground
         float penetration = groundLevel - myMin.y;
@@ -198,9 +204,8 @@ void Puzzle::render(Scene &scene, GLuint depthMap) {
 }
 
 void Puzzle::renderForShadow(Scene &scene) {
-    generateModelMatrix(parentObject ? parentObject->modelMatrix : glm::mat4{1.0f});
-
     // Use the currently bound shadow shader from SceneWindow
+    // Model matrix is already updated from update() method
     GLint currentProgram = 0;
     glGetIntegerv(GL_CURRENT_PROGRAM, &currentProgram);
     GLint locModel = glGetUniformLocation(static_cast<GLuint>(currentProgram), "ModelMatrix");
