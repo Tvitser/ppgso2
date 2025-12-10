@@ -15,6 +15,7 @@ Puzzle::Puzzle(Object* parent) {
     rotation = {0, 0, 0};
     scale = {1, 1, 1};
     velocity = {0, 0, 0};
+    radius = 0.0f; // Use AABB collision, not sphere-based
 
     if (!mesh) {
         mesh = std::make_unique<ppgso::Mesh>("objects/cube_simple.obj");
