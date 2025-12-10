@@ -21,6 +21,7 @@
 
 // === Базовые объекты ===
 #include "objects/plane.h"
+#include "objects/puzzle.h"
 
 #include "objects/building/balcony.h"
 #include "objects/building/building.h"
@@ -680,6 +681,22 @@ public:
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
 
+        // Spawn puzzle at camera position when P is pressed
+        if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+            if (scene.camera) {
+                // Create puzzle at camera's position
+                auto puzzle = std::make_unique<Puzzle>(nullptr, scene.camera->position, 
+                                                       glm::vec3(0, scene.camera->rotation, 0));
+                
+                // Give it a small initial velocity in the direction camera is facing
+                float yawRad = glm::radians(scene.camera->rotation);
+                glm::vec3 forward = glm::normalize(glm::vec3{std::sin(yawRad), 0.0f, -std::cos(yawRad)});
+                // Small push forward when spawned
+                puzzle->speed = forward * 2.0f;
+                
+                scene.rootObjects.push_back(std::move(puzzle));
+            }
+        }
 
     }
 
