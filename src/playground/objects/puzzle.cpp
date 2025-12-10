@@ -17,7 +17,7 @@ Puzzle::Puzzle(Object* parent) {
     radius = collisionRadius;
 
     if (!mesh) {
-        mesh = std::make_unique<ppgso::Mesh>("objects/cube.obj");
+        mesh = std::make_unique<ppgso::Mesh>("objects/cube_simple.obj");
     }
     if (!shader) {
         shader = std::make_unique<ppgso::Shader>(phong_vert_glsl, phong_frag_glsl);
@@ -28,11 +28,14 @@ Puzzle::Puzzle(Object* parent) {
 }
 
 void Puzzle::checkCollisions(Scene &scene, float dt) {
+    // Reset ground flag at start of collision check
+    isOnGround = false;
+    
     // Check collision with ground (plane at y = -1)
     const float groundY = -1.0f;
     const float puzzleBottomY = position.y - collisionRadius;
     
-    if (puzzleBottomY <= groundY && velocity.y < 0) {
+    if (puzzleBottomY <= groundY) {
         // Collision with ground
         position.y = groundY + collisionRadius;
         velocity.y = 0;
@@ -48,11 +51,13 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
         float distance = glm::length(position - objPos);
         float minDistance = collisionRadius + obj->radius;
         
-        if (obj->radius > 0 && distance < minDistance && velocity.y < 0) {
-            // Collision detected - stop vertical movement
+        if (obj->radius > 0 && distance < minDistance) {
+            // Collision detected - stop vertical movement and resolve overlap
             float overlap = minDistance - distance;
             position.y += overlap;
-            velocity.y = 0;
+            if (velocity.y < 0) {
+                velocity.y = 0;
+            }
             isOnGround = true;
         }
     }
@@ -66,9 +71,6 @@ bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::ve
     
     // Update position based on velocity
     position += velocity * dt;
-    
-    // Reset ground flag (will be set by collision detection if still on ground)
-    isOnGround = false;
     
     // Add slight rotation for visual effect
     rotation.y += dt * 0.5f;
