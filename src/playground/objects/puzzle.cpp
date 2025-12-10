@@ -1,4 +1,5 @@
 #include "puzzle.h"
+#include "src/playground/scene.h"
 
 #include <shader/phong_vert_glsl.h>
 #include <shader/phong_frag_glsl.h>
@@ -47,18 +48,25 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
         if (obj.get() == this) continue; // Skip self
         
         // Simple sphere collision detection
+        // Note: modelMatrix[3] contains the translation (position) of the object
         glm::vec3 objPos = glm::vec3(obj->modelMatrix[3]);
-        float distance = glm::length(position - objPos);
+        glm::vec3 collisionVector = position - objPos;
+        float distance = glm::length(collisionVector);
         float minDistance = collisionRadius + obj->radius;
         
-        if (obj->radius > 0 && distance < minDistance) {
-            // Collision detected - stop vertical movement and resolve overlap
+        if (obj->radius > 0 && distance < minDistance && distance > 0.001f) {
+            // Collision detected - push objects apart along collision normal
+            glm::vec3 collisionNormal = glm::normalize(collisionVector);
             float overlap = minDistance - distance;
-            position.y += overlap;
-            if (velocity.y < 0) {
+            
+            // Move puzzle away from the object along the collision normal
+            position += collisionNormal * overlap;
+            
+            // Stop vertical velocity if moving downward
+            if (velocity.y < 0 && collisionNormal.y > 0.1f) {
                 velocity.y = 0;
+                isOnGround = true;
             }
-            isOnGround = true;
         }
     }
 }

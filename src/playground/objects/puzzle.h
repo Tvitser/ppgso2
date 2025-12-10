@@ -3,8 +3,10 @@
 
 #include <memory>
 #include <ppgso/ppgso.h>
-#include "src/playground/scene.h"
 #include "src/playground/object.h"
+
+// Forward declaration
+class Scene;
 
 class Puzzle : public Object {
 private:
