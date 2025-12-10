@@ -151,6 +151,7 @@ public:
       glm::mat4 actual, next, last;
       glm::vec3 actualrot, nextrot, lastrot;
       glm::vec3 actualpos, nextpos, lastpos;
+      glm::vec3 actualscale, nextscale, lastscale;
       bool easeIn, easeOut;
       float duration;
       for (auto iter= keyframes.begin(); iter != keyframes.end(); iter++) {
@@ -159,6 +160,7 @@ public:
               actual = iter->matrix;
               actualrot = iter->rotation;
               actualpos = iter->position;
+              actualscale = iter->scale;
               duration = iter->duration;
               easeIn = iter->easeIn;
               easeOut = iter->easeOut;
@@ -172,10 +174,12 @@ public:
               next = iter->matrix;
               nextrot = iter->rotation;
               nextpos = iter->position;
+              nextscale = iter->scale;
               float a = (age - t) / duration;
               modelMatrix = Object::interpolate(actual, next, a, easeIn, easeOut);
               rotation = glm::lerp(actualrot, nextrot, a);
               position = glm::lerp(actualpos, nextpos, a);
+              scale = glm::lerp(actualscale, nextscale, a);
               if (duration > 0.f) {
                   speed = (nextpos - actualpos) / duration;
               } else {
@@ -186,12 +190,14 @@ public:
           last = iter->matrix;
           lastrot = iter->rotation;
           lastpos = iter->position;
+          lastscale = iter->scale;
           lastdur = iter->duration;
           t += iter->duration;
       }
       modelMatrix = last;
       rotation = lastrot;
       position = lastpos;
+      scale = lastscale;
       if (lastdur == -2.f) {
           keyframesOver = true;
       } else if (lastdur == 0.f) {
