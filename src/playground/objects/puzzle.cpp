@@ -44,9 +44,8 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
     }
     
     // Extract puzzle's AABB using position and scale
-    glm::vec3 puzzleScale = scale; // Use puzzle's scale
-    glm::vec3 puzzleMin = position - puzzleScale * 0.5f;
-    glm::vec3 puzzleMax = position + puzzleScale * 0.5f;
+    glm::vec3 puzzleMin = position - scale * 0.5f;
+    glm::vec3 puzzleMax = position + scale * 0.5f;
     
     // Check collision with other objects in the scene using AABB
     for (auto& obj : scene.rootObjects) {
@@ -78,26 +77,28 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
             
             // Resolve collision along the axis with minimum overlap
             if (overlapY <= overlapX && overlapY <= overlapZ && velocity.y < 0) {
-                // Resolve vertical collision (puzzle falling onto object)
-                float separation = overlapY;
-                position.y += separation;
+                // Resolve vertical collision (puzzle falling onto object from above)
+                // Push puzzle upward to rest on top of the object
+                if (position.y > objPos.y) {
+                    position.y += overlapY;
+                } else {
+                    position.y -= overlapY;
+                }
                 velocity.y = 0;
                 isOnGround = true;
             } else if (overlapX <= overlapY && overlapX <= overlapZ) {
                 // Resolve horizontal X collision
-                float separation = overlapX;
                 if (position.x < objPos.x) {
-                    position.x -= separation;
+                    position.x -= overlapX;
                 } else {
-                    position.x += separation;
+                    position.x += overlapX;
                 }
             } else {
                 // Resolve horizontal Z collision
-                float separation = overlapZ;
                 if (position.z < objPos.z) {
-                    position.z -= separation;
+                    position.z -= overlapZ;
                 } else {
-                    position.z += separation;
+                    position.z += overlapZ;
                 }
             }
         }
