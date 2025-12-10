@@ -402,11 +402,17 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             const float segmentDuration = 3.f;
             const float offset = 5.f;
             const float animationHeight = 0.0f;
-            animatedPot->keyframes.push_back(Keyframe(startDelay, {-offset, animationHeight, -offset}));
-            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {-offset, animationHeight, offset}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {offset, animationHeight, offset}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {offset, animationHeight, -offset}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {-offset, animationHeight, -offset}, {0, 0, 0}, true, true));
+            std::vector<glm::vec3> path = {
+                {-offset, animationHeight, -offset},
+                {-offset, animationHeight, offset},
+                {offset, animationHeight, offset},
+                {offset, animationHeight, -offset},
+                {-offset, animationHeight, -offset}
+            };
+            animatedPot->keyframes.push_back(Keyframe(startDelay, path.front()));
+            for (size_t i = 1; i < path.size(); ++i) {
+                animatedPot->keyframes.push_back(Keyframe(segmentDuration, path[i], {0, 0, 0}, true, true));
+            }
             scene.rootObjects.push_back(std::move(animatedPot));
         }
     }

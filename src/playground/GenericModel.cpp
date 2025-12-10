@@ -29,15 +29,11 @@ void GenericModel::ensureResources() {
 }
 
 bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::vec3 parentRotation) {
-    glm::mat4 localModel;
     if (!keyframes.empty() && !keyframesOver) {
         age += dt;
         keyframesUpdate(scene);
-        localModel = Object::getModelMatrix(position, rotation, scale);
-    } else {
-        generateModelMatrix(glm::mat4{1.0f});
-        localModel = modelMatrix;
     }
+    glm::mat4 localModel = Object::getModelMatrix(position, rotation, scale);
     modelMatrix = parentModelMatrix * localModel;
     return true;
 }
