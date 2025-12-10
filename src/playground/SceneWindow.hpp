@@ -402,7 +402,7 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             animatedPot->keyframes.push_back(Keyframe(3.f, {-5.f, 0.0f, 5.f}, {0, 0, 0}, true, true));
             animatedPot->keyframes.push_back(Keyframe(3.f, {5.f, 0.0f, 5.f}, {0, 0, 0}, true, true));
             animatedPot->keyframes.push_back(Keyframe(3.f, {5.f, 0.0f, -5.f}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(-2.f, {5.f, 0.0f, -5.f}));
+            animatedPot->keyframes.push_back(Keyframe(3.f, {-5.f, 0.0f, -5.f}, {0, 0, 0}, true, true));
             scene.rootObjects.push_back(std::move(animatedPot));
         }
     }
