@@ -398,11 +398,15 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
         {
             auto animatedPot = std::make_unique<GenericModel>(nullptr, "objects/pot.obj", "textures/pot.bmp");
             animatedPot->scale = {0.6f, 0.6f, 0.6f};
-            animatedPot->keyframes.push_back(Keyframe(0.1f, {-5.f, 0.0f, -5.f}));
-            animatedPot->keyframes.push_back(Keyframe(3.f, {-5.f, 0.0f, 5.f}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(3.f, {5.f, 0.0f, 5.f}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(3.f, {5.f, 0.0f, -5.f}, {0, 0, 0}, true, true));
-            animatedPot->keyframes.push_back(Keyframe(3.f, {-5.f, 0.0f, -5.f}, {0, 0, 0}, true, true));
+            const float startDelay = 0.1f;
+            const float segmentDuration = 3.f;
+            const float offset = 5.f;
+            const float animationHeight = 0.0f;
+            animatedPot->keyframes.push_back(Keyframe(startDelay, {-offset, animationHeight, -offset}));
+            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {-offset, animationHeight, offset}, {0, 0, 0}, true, true));
+            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {offset, animationHeight, offset}, {0, 0, 0}, true, true));
+            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {offset, animationHeight, -offset}, {0, 0, 0}, true, true));
+            animatedPot->keyframes.push_back(Keyframe(segmentDuration, {-offset, animationHeight, -offset}, {0, 0, 0}, true, true));
             scene.rootObjects.push_back(std::move(animatedPot));
         }
     }

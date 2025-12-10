@@ -32,10 +32,10 @@ bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, g
     if (!keyframes.empty() && !keyframesOver) {
         age += dt;
         keyframesUpdate(scene);
-        modelMatrix = parentModelMatrix * modelMatrix;
     } else {
-        generateModelMatrix(parentModelMatrix);
+        generateModelMatrix(glm::mat4{1.0f});
     }
+    modelMatrix = parentModelMatrix * modelMatrix;
     return true;
 }
 
