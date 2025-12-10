@@ -403,6 +403,8 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             const float offset = 5.f;
             const float animationHeight = 0.0f;
             const glm::vec3 defaultRotation{0.f, 0.f, 0.f};
+            const bool easeIn = true;
+            const bool easeOut = true;
             std::vector<glm::vec3> path = {
                 {-offset, animationHeight, -offset},
                 {-offset, animationHeight, offset},
@@ -412,7 +414,7 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             };
             animatedPot->keyframes.push_back(Keyframe(startDelay, path.front()));
             for (size_t i = 1; i < path.size(); ++i) {
-                animatedPot->keyframes.push_back(Keyframe(segmentDuration, path[i], defaultRotation, true, true));
+                animatedPot->keyframes.push_back(Keyframe(segmentDuration, path[i], defaultRotation, easeIn, easeOut));
             }
             scene.rootObjects.push_back(std::move(animatedPot));
         }
