@@ -206,6 +206,8 @@ add_executable(playground
         src/playground/light.cpp
         src/playground/objects/skybox.cpp
         src/playground/objects/plane.cpp
+        src/playground/objects/puzzle.cpp
+        src/playground/objects/puzzle.h
         src/playground/mainlight.cpp
         src/playground/mainlight.h
 
