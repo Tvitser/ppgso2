@@ -15,7 +15,6 @@ Puzzle::Puzzle(Object* parent) {
     rotation = {0, 0, 0};
     scale = {1, 1, 1};
     velocity = {0, 0, 0};
-    radius = collisionRadius;
 
     if (!mesh) {
         mesh = std::make_unique<ppgso::Mesh>("objects/cube_simple.obj");
@@ -34,38 +33,73 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
     
     // Check collision with ground (plane at y = -1)
     const float groundY = -1.0f;
-    const float puzzleBottomY = position.y - collisionRadius;
+    const float puzzleHalfHeight = scale.y * 0.5f;
+    const float puzzleBottomY = position.y - puzzleHalfHeight;
     
     if (puzzleBottomY <= groundY) {
         // Collision with ground
-        position.y = groundY + collisionRadius;
+        position.y = groundY + puzzleHalfHeight;
         velocity.y = 0;
         isOnGround = true;
     }
     
-    // Check collision with other objects in the scene
+    // Extract puzzle's AABB from its model matrix
+    glm::vec3 puzzlePos = glm::vec3(modelMatrix[3]);
+    glm::vec3 puzzleScale = scale; // Use puzzle's scale
+    glm::vec3 puzzleMin = puzzlePos - puzzleScale * 0.5f;
+    glm::vec3 puzzleMax = puzzlePos + puzzleScale * 0.5f;
+    
+    // Check collision with other objects in the scene using AABB
     for (auto& obj : scene.rootObjects) {
         if (obj.get() == this) continue; // Skip self
         
-        // Simple sphere collision detection
-        // Note: modelMatrix[3] contains the translation (position) of the object
+        // Extract object's position and scale from its model matrix
         glm::vec3 objPos = glm::vec3(obj->modelMatrix[3]);
-        glm::vec3 collisionVector = position - objPos;
-        float distance = glm::length(collisionVector);
-        float minDistance = collisionRadius + obj->radius;
+        glm::vec3 objScale = obj->scale;
         
-        if (obj->radius > 0 && distance < minDistance && distance > 0.001f) {
-            // Collision detected - push objects apart along collision normal
-            glm::vec3 collisionNormal = glm::normalize(collisionVector);
-            float overlap = minDistance - distance;
+        // Skip objects with zero scale (invalid or uninitialized)
+        if (objScale.x <= 0.001f || objScale.y <= 0.001f || objScale.z <= 0.001f) {
+            continue;
+        }
+        
+        // Calculate object's AABB
+        glm::vec3 objMin = objPos - objScale * 0.5f;
+        glm::vec3 objMax = objPos + objScale * 0.5f;
+        
+        // AABB collision test
+        bool collisionX = puzzleMax.x >= objMin.x && puzzleMin.x <= objMax.x;
+        bool collisionY = puzzleMax.y >= objMin.y && puzzleMin.y <= objMax.y;
+        bool collisionZ = puzzleMax.z >= objMin.z && puzzleMin.z <= objMax.z;
+        
+        if (collisionX && collisionY && collisionZ) {
+            // Collision detected - calculate overlap on each axis
+            float overlapX = std::min(puzzleMax.x - objMin.x, objMax.x - puzzleMin.x);
+            float overlapY = std::min(puzzleMax.y - objMin.y, objMax.y - puzzleMin.y);
+            float overlapZ = std::min(puzzleMax.z - objMin.z, objMax.z - puzzleMin.z);
             
-            // Move puzzle away from the object along the collision normal
-            position += collisionNormal * overlap;
-            
-            // Stop vertical velocity if moving downward
-            if (velocity.y < 0 && collisionNormal.y > 0.1f) {
+            // Resolve collision along the axis with minimum overlap
+            if (overlapY <= overlapX && overlapY <= overlapZ && velocity.y < 0) {
+                // Resolve vertical collision (puzzle falling onto object)
+                float separation = overlapY;
+                position.y += separation;
                 velocity.y = 0;
                 isOnGround = true;
+            } else if (overlapX <= overlapY && overlapX <= overlapZ) {
+                // Resolve horizontal X collision
+                float separation = overlapX;
+                if (puzzlePos.x < objPos.x) {
+                    position.x -= separation;
+                } else {
+                    position.x += separation;
+                }
+            } else {
+                // Resolve horizontal Z collision
+                float separation = overlapZ;
+                if (puzzlePos.z < objPos.z) {
+                    position.z -= separation;
+                } else {
+                    position.z += separation;
+                }
             }
         }
     }

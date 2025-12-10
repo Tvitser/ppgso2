@@ -17,7 +17,6 @@ private:
     // Physics properties
     glm::vec3 velocity{0, 0, 0};
     const float gravity = -9.8f;
-    const float collisionRadius = 0.5f;
     bool isOnGround = false;
 
 public:

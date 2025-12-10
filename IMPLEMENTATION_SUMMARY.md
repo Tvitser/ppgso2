@@ -32,9 +32,9 @@ position += velocity * dt;
 **Collision Detection Order:**
 1. Scene calls `checkCollisions()` first
 2. Resets `isOnGround` flag
-3. Checks ground collision (y = -1.0)
-4. Checks sphere collision with all objects
-5. Resolves collisions by adjusting position along collision normal
+3. Checks ground collision (y = -1.0) using scale-based half-height
+4. Checks AABB collision with all objects using their model matrix scale
+5. Resolves collisions along axis with minimum overlap
 6. Sets `isOnGround = true` if resting on surface
 7. Scene then calls `update()` which only applies gravity if not on ground
 
@@ -45,9 +45,10 @@ position += velocity * dt;
 - Stops vertical velocity
 
 **Object-to-Object Collision:**
-- Uses sphere-based collision detection
-- Calculates collision normal vector
-- Pushes puzzle away along the collision normal
+- Uses AABB (Axis-Aligned Bounding Box) collision detection
+- Extracts position and scale from each object's model matrix
+- Calculates 3D overlap on all axes (X, Y, Z)
+- Resolves collision along the axis with minimum overlap
 - Stops vertical velocity if colliding from above
 - Sets `isOnGround` flag for proper physics state
 

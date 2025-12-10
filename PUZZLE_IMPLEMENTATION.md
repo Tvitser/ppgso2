@@ -15,18 +15,21 @@ The puzzle object implements two types of collision detection:
 
 #### Ground Collision
 - Detects collision with the ground plane (y = -1.0)
-- When the bottom of the puzzle (position.y - collisionRadius) touches or goes below the ground, it:
+- Uses the puzzle's scale to determine its half-height
+- When the bottom of the puzzle (position.y - scale.y * 0.5) touches or goes below the ground, it:
   - Repositions the puzzle to rest exactly on the ground
   - Sets vertical velocity to 0
   - Sets the `isOnGround` flag
 
 #### Object-to-Object Collision
-- Uses sphere-based collision detection
-- Compares the distance between the puzzle and other objects
+- Uses AABB (Axis-Aligned Bounding Box) collision detection
+- Extracts position and scale from each object's model matrix
+- Calculates bounding boxes: min = position - scale * 0.5, max = position + scale * 0.5
 - When collision is detected:
-  - Adjusts the puzzle position to resolve overlap
-  - Stops vertical movement
-  - Sets the `isOnGround` flag
+  - Calculates overlap on each axis (X, Y, Z)
+  - Resolves collision along the axis with minimum overlap
+  - For vertical collisions (Y-axis), stops vertical movement and sets `isOnGround`
+  - For horizontal collisions, pushes the puzzle away from the object
 
 ### 3. Visual Effects
 - The puzzle rotates while falling for visual interest
@@ -66,11 +69,10 @@ class Puzzle : public Object {
 private:
     glm::vec3 velocity;           // Current velocity
     const float gravity = -9.8f;  // Gravity acceleration
-    const float collisionRadius = 0.5f;  // Collision detection radius
     bool isOnGround;              // Whether the puzzle is resting on a surface
     
 public:
-    void checkCollisions(Scene &scene, float dt);  // Collision detection
+    void checkCollisions(Scene &scene, float dt);  // Collision detection using AABB
     bool update(Scene &scene, float dt, ...);      // Physics update
     void render(Scene &scene, GLuint depthMap);    // Rendering
     void renderForShadow(Scene &scene);            // Shadow rendering
@@ -96,17 +98,19 @@ public:
 ## Limitations and Future Improvements
 
 ### Current Limitations
-1. Uses simple sphere-based collision detection (not precise bounding box)
+1. Uses AABB collision detection (doesn't account for object rotation)
 2. No bounce or friction simulation (objects stop immediately on collision)
 3. No horizontal velocity (objects fall straight down)
+4. Requires objects to have proper scale values set for collision detection
 
 ### Potential Improvements
 1. Add more realistic physics (bounce, friction, angular momentum)
-2. Implement proper AABB or OBB collision detection
+2. Implement OBB (Oriented Bounding Box) collision detection to account for rotations
 3. Add different puzzle shapes and textures
 4. Allow puzzles to have initial velocity from camera movement
 5. Add sound effects for collision events
 6. Implement puzzle stacking with proper stability
+7. Support for convex mesh collision detection
 
 ## Building and Testing
 
