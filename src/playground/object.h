@@ -169,6 +169,7 @@ public:
                   modelMatrix = actual;
                   rotation = actualrot;
                   position = actualpos;
+                  scale = actualscale;
                   return true;
               }
               next = iter->matrix;
