@@ -33,8 +33,7 @@ bool GenericModel::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, g
         age += dt;
         keyframesUpdate(scene);
     }
-    glm::mat4 localModel = Object::getModelMatrix(position, rotation, scale);
-    modelMatrix = parentModelMatrix * localModel;
+    generateModelMatrix(parentModelMatrix);
     return true;
 }
 
