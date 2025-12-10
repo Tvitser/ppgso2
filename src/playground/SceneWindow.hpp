@@ -397,7 +397,6 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
 
         {
             auto animatedPot = std::make_unique<GenericModel>(nullptr, "objects/pot.obj", "textures/pot.bmp");
-            animatedPot->scale = {0.6f, 0.6f, 0.6f};
             const float startDelay = 0.1f;
             const float segmentDuration = 3.f;
             const float offset = 5.f;
@@ -405,6 +404,8 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             const glm::vec3 defaultRotation{0.f, 0.f, 0.f};
             const bool easeIn = true;
             const bool easeOut = true;
+            animatedPot->scale = {0.6f, 0.6f, 0.6f};
+            animatedPot->position.y = animationHeight;
             std::vector<glm::vec3> path = {
                 {-offset, animationHeight, -offset},
                 {-offset, animationHeight, offset},
