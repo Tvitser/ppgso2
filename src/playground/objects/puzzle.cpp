@@ -9,6 +9,14 @@ std::unique_ptr<ppgso::Mesh> Puzzle::mesh;
 std::unique_ptr<ppgso::Shader> Puzzle::shader;
 std::unique_ptr<ppgso::Texture> Puzzle::texture;
 
+// Static cube corners for collision detection
+static const glm::vec3 CUBE_CORNERS[8] = {
+    {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f},
+    {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f},
+    {-0.5f, -0.5f,  0.5f}, {0.5f, -0.5f,  0.5f},
+    {-0.5f,  0.5f,  0.5f}, {0.5f,  0.5f,  0.5f}
+};
+
 Puzzle::Puzzle(Object* parent, const glm::vec3& initialPosition, const glm::vec3& initialRotation) {
     parentObject = parent;
     position = initialPosition;
@@ -30,16 +38,8 @@ Puzzle::Puzzle(Object* parent, const glm::vec3& initialPosition, const glm::vec3
 }
 
 glm::vec3 Puzzle::getMin() const {
-    // Get the 8 corners of the unit cube and transform them by model matrix
-    glm::vec3 corners[8] = {
-        {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f},
-        {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f},
-        {-0.5f, -0.5f,  0.5f}, {0.5f, -0.5f,  0.5f},
-        {-0.5f,  0.5f,  0.5f}, {0.5f,  0.5f,  0.5f}
-    };
-
     glm::vec3 minBound(FLT_MAX);
-    for (const auto& corner : corners) {
+    for (const auto& corner : CUBE_CORNERS) {
         glm::vec4 transformed = modelMatrix * glm::vec4(corner, 1.0f);
         minBound = glm::min(minBound, glm::vec3(transformed));
     }
@@ -47,15 +47,8 @@ glm::vec3 Puzzle::getMin() const {
 }
 
 glm::vec3 Puzzle::getMax() const {
-    glm::vec3 corners[8] = {
-        {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f},
-        {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f},
-        {-0.5f, -0.5f,  0.5f}, {0.5f, -0.5f,  0.5f},
-        {-0.5f,  0.5f,  0.5f}, {0.5f,  0.5f,  0.5f}
-    };
-
     glm::vec3 maxBound(-FLT_MAX);
-    for (const auto& corner : corners) {
+    for (const auto& corner : CUBE_CORNERS) {
         glm::vec4 transformed = modelMatrix * glm::vec4(corner, 1.0f);
         maxBound = glm::max(maxBound, glm::vec3(transformed));
     }
@@ -70,16 +63,9 @@ bool Puzzle::checkCollisionWithObject(Object* other) const {
     glm::vec3 myMax = getMax();
 
     // For other objects, calculate bounds from their model matrix
-    glm::vec3 otherCorners[8] = {
-        {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f},
-        {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f},
-        {-0.5f, -0.5f,  0.5f}, {0.5f, -0.5f,  0.5f},
-        {-0.5f,  0.5f,  0.5f}, {0.5f,  0.5f,  0.5f}
-    };
-
     glm::vec3 otherMin(FLT_MAX);
     glm::vec3 otherMax(-FLT_MAX);
-    for (const auto& corner : otherCorners) {
+    for (const auto& corner : CUBE_CORNERS) {
         glm::vec4 transformed = other->modelMatrix * glm::vec4(corner, 1.0f);
         otherMin = glm::min(otherMin, glm::vec3(transformed));
         otherMax = glm::max(otherMax, glm::vec3(transformed));
@@ -165,13 +151,7 @@ bool Puzzle::update(Scene &scene, float dt, glm::mat4 parentModelMatrix, glm::ve
             // Move puzzle slightly up to avoid penetration
             glm::vec3 otherMin(FLT_MAX);
             glm::vec3 otherMax(-FLT_MAX);
-            glm::vec3 otherCorners[8] = {
-                {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f},
-                {-0.5f,  0.5f, -0.5f}, {0.5f,  0.5f, -0.5f},
-                {-0.5f, -0.5f,  0.5f}, {0.5f, -0.5f,  0.5f},
-                {-0.5f,  0.5f,  0.5f}, {0.5f,  0.5f,  0.5f}
-            };
-            for (const auto& corner : otherCorners) {
+            for (const auto& corner : CUBE_CORNERS) {
                 glm::vec4 transformed = obj->modelMatrix * glm::vec4(corner, 1.0f);
                 otherMin = glm::min(otherMin, glm::vec3(transformed));
                 otherMax = glm::max(otherMax, glm::vec3(transformed));
