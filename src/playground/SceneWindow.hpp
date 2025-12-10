@@ -18,6 +18,7 @@
 #include "camera.h"
 #include "scene.h"
 #include "light.h"
+#include "keyframe.h"
 
 // === Базовые объекты ===
 #include "objects/plane.h"
@@ -392,6 +393,17 @@ auto findTextureFor = [&](const std::string &baseName)->std::pair<std::string,bo
             auto balcony = std::make_unique<Balcony>(nullptr);
             balcony->position = {1, 1, 1};
             scene.rootObjects.push_back(std::move(balcony));
+        }
+
+        {
+            auto animatedPot = std::make_unique<GenericModel>(nullptr, "objects/pot.obj", "textures/pot.bmp");
+            animatedPot->scale = {0.6f, 0.6f, 0.6f};
+            animatedPot->keyframes.push_back(Keyframe(0.1f, {-5.f, 0.0f, -5.f}));
+            animatedPot->keyframes.push_back(Keyframe(3.f, {-5.f, 0.0f, 5.f}, {0, 0, 0}, true, true));
+            animatedPot->keyframes.push_back(Keyframe(3.f, {5.f, 0.0f, 5.f}, {0, 0, 0}, true, true));
+            animatedPot->keyframes.push_back(Keyframe(3.f, {5.f, 0.0f, -5.f}, {0, 0, 0}, true, true));
+            animatedPot->keyframes.push_back(Keyframe(-2.f, {5.f, 0.0f, -5.f}));
+            scene.rootObjects.push_back(std::move(animatedPot));
         }
     }
 
