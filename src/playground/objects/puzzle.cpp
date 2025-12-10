@@ -43,11 +43,10 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
         isOnGround = true;
     }
     
-    // Extract puzzle's AABB from its model matrix
-    glm::vec3 puzzlePos = glm::vec3(modelMatrix[3]);
+    // Extract puzzle's AABB using position and scale
     glm::vec3 puzzleScale = scale; // Use puzzle's scale
-    glm::vec3 puzzleMin = puzzlePos - puzzleScale * 0.5f;
-    glm::vec3 puzzleMax = puzzlePos + puzzleScale * 0.5f;
+    glm::vec3 puzzleMin = position - puzzleScale * 0.5f;
+    glm::vec3 puzzleMax = position + puzzleScale * 0.5f;
     
     // Check collision with other objects in the scene using AABB
     for (auto& obj : scene.rootObjects) {
@@ -87,7 +86,7 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
             } else if (overlapX <= overlapY && overlapX <= overlapZ) {
                 // Resolve horizontal X collision
                 float separation = overlapX;
-                if (puzzlePos.x < objPos.x) {
+                if (position.x < objPos.x) {
                     position.x -= separation;
                 } else {
                     position.x += separation;
@@ -95,7 +94,7 @@ void Puzzle::checkCollisions(Scene &scene, float dt) {
             } else {
                 // Resolve horizontal Z collision
                 float separation = overlapZ;
-                if (puzzlePos.z < objPos.z) {
+                if (position.z < objPos.z) {
                     position.z -= separation;
                 } else {
                     position.z += separation;
